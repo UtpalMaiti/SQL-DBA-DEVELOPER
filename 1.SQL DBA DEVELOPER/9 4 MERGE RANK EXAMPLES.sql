@@ -1,0 +1,79 @@
+USE [DB_OBJECTS]  
+GO
+
+CREATE TABLE tblOrders  
+( 
+ID INT NOT NULL PRIMARY KEY, 
+TitleTag NVARCHAR(30) NOT NULL, 
+Measure INT NOT NULL DEFAULT 0 
+)
+
+CREATE TABLE tblInventory  
+( 
+ID INT NOT NULL, 
+TitleTag NVARCHAR(30) NOT NULL, 
+Measure INT NOT NULL DEFAULT 0 
+)
+
+INSERT tblOrders VALUES 	 (1, 'Comedy', 100),  (2, 'NEGOT', 100), (3, 'BUSINESS', 100)
+
+INSERT tblInventory VALUES   (3, 'BUSN PROFILES', 200),  (4, 'PB CHAPTER BKS', 200), 
+							 (5, 'BEG READER HC', 200),  (6, 'Literature', 200)
+
+SELECT * FROM tblOrders
+SELECT * FROM tblInventory		
+
+
+-- MERGE	:	 A MECHANISM TO COMPARE TWO TABLES AND IDENTIFY MATCHING & MISSING DATA.
+--				 PERFORM DML OPERATIONS ON THE THIS MATCHING & MISSING DATA.
+
+MERGE tblInventory			-- THIS IS THE TARGET TABLE FOR DML OPERATIONS
+USING tblOrders				-- THIS IS CALLED COMPARASION TABLE [REFERENCE TABLE]
+ON
+tblInventory.ID = tblOrders.ID 
+WHEN MATCHED THEN		UPDATE SET tblInventory.Measure = tblInventory.Measure + tblOrders.Measure
+WHEN NOT MATCHED THEN	INSERT VALUES (tblOrders.ID, tblOrders.TitleTag, tblOrders.Measure)
+;
+
+select * from tblInventory					-- 1 matching row update  ++  2 missing rows inserts
+
+-- MERGE	=	JOIN  + DML
+
+select * from tblInventory
+
+
+select *, IIF(Measure = 100, 'Grade A', 'Grade B') as GRADE from tblInventory		-- IF AND ONLY IF
+
+
+select *, CASE	WHEN Measure = 100 THEN  'Grade A'				-- UNLIMITTED CONDITIONS
+				WHEN Measure = 200 THEN  'Grade B'
+				WHEN Measure = 300 THEN  'Grade C'
+				ELSE 'NOT APPLICABLE'
+		  END
+		  as GRADE from tblInventory
+
+
+
+
+
+-- RANK FUNCTIONS	:	 USED TO GENERATE SEQUENCE OF VALUES.
+
+-- HOW TO GENERATE SEQUENCE VALUES FOR EXISTING TABLE DATA? USING "SET" FUNCTIONS
+SELECT *, ROW_NUMBER() OVER (ORDER BY MEASURE) AS SEQ1 FROM tblInventory
+
+SELECT *, RANK() OVER (ORDER BY MEASURE) AS SEQ2 FROM tblInventory
+SELECT *, DENSE_RANK() OVER (ORDER BY MEASURE) AS SEQ3 FROM tblInventory
+
+
+SELECT *,	ROW_NUMBER() OVER (ORDER BY MEASURE) AS SEQ1,	-- UNIQUE SEQUENCE
+			RANK() OVER (ORDER BY MEASURE) AS SEQ2,			-- SAME VALUE HAS SAME SEQUENCE. NEW SEQUENCE ON ROW NUMBER
+			DENSE_RANK() OVER (ORDER BY MEASURE) AS SEQ3,	-- SAME VALUE HAS SAME SEQUENCE. NEW SEQUENCE ON PREV. SEQUENCE
+			ROW_NUMBER() OVER (PARTITION BY MEASURE ORDER BY MEASURE) AS SEQ4	-- RESET IN SEQUENCE FOR EVERY VALUE
+FROM tblInventory
+
+
+-- A BANKING ENVIRONMENT.			CREDITS		:		C1, C2, C3.....			
+									--DEBITS		:		D1, D2, D3, D4....
+									--TRANSACTIONS:		T1, T2, T3, T4, T5........................	:	ROW_NUMBER()
+									--CREDITS		:		C1 C1 C1 C1..... 		D2  D2  D2  D3 ....	:	DENSE_RANK()
+									--CREDITS		:		C1 C2 C3 C4.....		D1  D2  D3  D4 .... :	PARTITION BY
